@@ -1,0 +1,9 @@
+type,category,amount,date
+income,Salary,2000,2025-05-01
+income,Freelance,500,2025-05-03
+expense,Food,120.75,2025-05-02
+expense,Transport,45.60,2025-05-02
+expense,Entertainment,88.00,2025-05-04
+expense,Utilities,110.50,2025-05-05
+expense,Food,75.30,2025-05-06
+income,Gift,100,2025-05-06
