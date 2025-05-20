@@ -7,15 +7,15 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <header class="app-header">
-        <div class="container">
-          <div class="logo">Finance Tracker</div>
-          <nav class="nav-links">
-            <a href="index.html">Home</a>
-          </nav>
-        </div>
-      </header>
-      
+  <header class="app-header">
+    <div class="container">
+      <div class="logo">Finance Tracker</div>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+      </nav>
+    </div>
+  </header>
+
   <h1>Add Income</h1>
   <form id="incomeForm">
     <label for="category">Source:</label>
@@ -29,6 +29,14 @@
 
     <button type="submit">Add Income</button>
     <p id="message"></p>
+
+    <div id="next-steps" style="display: none; text-align: center; margin-top: 15px;">
+      <a href="add-income.html">Add Another</a> |
+      <a href="summary.html">View Summary</a> |
+      <a href="index.html">Home</a>
+    </div>
+
+    <p class="form-warning">Note: Entries are saved permanently and cannot be edited or deleted later.</p>
   </form>
 
   <script>
@@ -48,6 +56,7 @@
       });
 
       document.getElementById('message').textContent = await res.text();
+      document.getElementById('next-steps').style.display = 'block';
       e.target.reset();
     });
   </script>
