@@ -233,3 +233,19 @@ canvas {
   text-align: center;
 }
 
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.login-link {
+  margin-left: 20px;
+}
+
+.login-description {
+  font-size: 0.95rem;
+  color: #ddd;
+  text-align: center;
+  margin: 5px 0 10px;
+}

@@ -180,6 +180,17 @@ watcher.on('add', filePath => {
 
 console.log(`File watcher is running. Watching folder: ${WATCH_DIR}`);
 
+const validateCredentials = require('./credentials/validator');
+
+app.post('/validate', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) return res.status(400).send('Missing credentials');
+
+  const result = await validateCredentials(username, password);
+  res.send(result.toString()); // '1' or '0'
+});
+
 
 // Start the server
 app.listen(PORT, () => {
