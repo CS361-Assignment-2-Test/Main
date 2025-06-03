@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const csv = require('csv-parser');
 const path = require('path');
+const multer = require('multer'); // ✅ Add multer
+const upload = multer({ dest: 'uploads/' }); // ✅ Configure temporary upload destination
 const csvHeaders = 'type,category,amount,date\n';
 
 const app = express();
@@ -99,6 +101,85 @@ app.get('/get-all-entries', (req, res) => {
       res.status(500).send('Failed to read data');
     });
 });
+
+// ✅ Route: Upload and process CSV file
+app.post('/upload-csv', upload.single('csvFile'), (req, res) => {
+  if (!req.file) return res.status(400).send('No file uploaded.');
+
+  const filePath = req.file.path;
+  const entries = [];
+
+  fs.createReadStream(filePath)
+    .pipe(csv())
+    .on('data', (row) => {
+      if (row.type && row.category && row.amount && row.date) {
+        entries.push(`${row.type},${row.category},${row.amount},${row.date}`);
+      }
+    })
+    .on('end', () => {
+      fs.appendFile(CSV_FILE, '\n' + entries.join('\n'), (err) => {
+        fs.unlinkSync(filePath); // Clean up uploaded file
+        if (err) return res.status(500).send('Error saving entries.');
+        res.send(`✅ Uploaded ${entries.length} entries from CSV.`);
+      });
+    })
+    .on('error', (err) => {
+      console.error('CSV parsing error:', err);
+      res.status(500).send('Failed to parse CSV');
+    });
+});
+
+const chokidar = require('chokidar');
+
+const WATCH_DIR = path.join(__dirname, 'uploads');
+
+// Ensure the directory exists
+if (!fs.existsSync(WATCH_DIR)) {
+  fs.mkdirSync(WATCH_DIR);
+}
+
+const watcher = chokidar.watch(WATCH_DIR, {
+  persistent: true,
+  ignoreInitial: true
+});
+
+watcher.on('add', filePath => {
+  const fileName = path.basename(filePath);
+
+  // Skip temporary or incomplete files
+  if (!fileName.endsWith('.csv')) {
+    console.log(`Ignored non-CSV file: ${fileName}`);
+    return;
+  }
+
+  console.log(`Detected CSV file: ${fileName}`);
+
+  const entries = [];
+
+  fs.createReadStream(filePath)
+    .pipe(csv())
+    .on('data', (row) => {
+      if (row.type && row.category && row.amount && row.date) {
+        entries.push(`${row.type},${row.category},${row.amount},${row.date}`);
+      }
+    })
+    .on('end', () => {
+      fs.appendFile(CSV_FILE, '\n' + entries.join('\n'), (err) => {
+        fs.unlinkSync(filePath); // Delete the uploaded file
+        if (err) {
+          console.error(`Failed to append entries from ${fileName}`);
+        } else {
+          console.log(`Processed and added ${entries.length} entries from ${fileName}`);
+        }
+      });
+    })
+    .on('error', (err) => {
+      console.error('CSV parsing error:', err);
+    });
+});
+
+console.log(`File watcher is running. Watching folder: ${WATCH_DIR}`);
+
 
 // Start the server
 app.listen(PORT, () => {

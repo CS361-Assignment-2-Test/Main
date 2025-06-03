@@ -12,7 +12,9 @@
   "description": "",
   "dependencies": {
     "body-parser": "^2.2.0",
+    "chokidar": "^4.0.3",
     "csv-parser": "^3.2.0",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "multer": "^2.0.0"
   }
 }
