@@ -3,8 +3,8 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const csv = require('csv-parser');
 const path = require('path');
-const multer = require('multer'); // ✅ Add multer
-const upload = multer({ dest: 'uploads/' }); // ✅ Configure temporary upload destination
+const multer = require('multer'); // Add multer
+const upload = multer({ dest: 'uploads/' }); // Configure temporary upload destination
 const csvHeaders = 'type,category,amount,date\n';
 
 const app = express();
@@ -102,7 +102,7 @@ app.get('/get-all-entries', (req, res) => {
     });
 });
 
-// ✅ Route: Upload and process CSV file
+// Route: Upload and process CSV file
 app.post('/upload-csv', upload.single('csvFile'), (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded.');
 
@@ -120,7 +120,7 @@ app.post('/upload-csv', upload.single('csvFile'), (req, res) => {
       fs.appendFile(CSV_FILE, '\n' + entries.join('\n'), (err) => {
         fs.unlinkSync(filePath); // Clean up uploaded file
         if (err) return res.status(500).send('Error saving entries.');
-        res.send(`✅ Uploaded ${entries.length} entries from CSV.`);
+        res.send(`Uploaded ${entries.length} entries from CSV.`);
       });
     })
     .on('error', (err) => {
