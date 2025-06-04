@@ -6,7 +6,7 @@ const path = require('path');
 const multer = require('multer'); 
 const upload = multer({ dest: 'uploads/' }); // Configure temporary upload destination
 const csvHeaders = 'type,category,amount,date\n';
-const validateEntry = require('./validator/validator'); // adjust path if needed
+// const validateEntry = require('./Input(MD)/validator');
 const LOG_FILE = path.join(__dirname, 'upload.log');
 const USERS_FILE = path.join(__dirname, 'secrets/users.json');
 const bcrypt = require('bcrypt');
@@ -115,49 +115,66 @@ app.post('/upload-csv', upload.single('csvFile'), (req, res) => {
   const validEntries = [];
   const invalidEntries = [];
 
-  fs.createReadStream(filePath)
-    .pipe(csv())
-    .on('data', (row) => {
-      const { valid, sanitized, message } = validateEntry(row);
-      if (valid) {
-        validEntries.push(`${sanitized.type},${sanitized.category},${sanitized.amount},${sanitized.date}`);
-      } else {
-        invalidEntries.push({ row, message });
-      }
-    })
-    .on('end', () => {
-      fs.unlinkSync(filePath); // clean up temp file
+  const processCSV = async () => {
+    try {
+      const rows = [];
+      fs.createReadStream(filePath)
+        .pipe(csv())
+        .on('data', (row) => rows.push(row))
+        .on('end', async () => {
+          for (const row of rows) {
+            try {
+              const response = await fetch('http://localhost:4002/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(row)
+              });
 
-      const logLines = [];
-      const timestamp = new Date().toISOString();
+              const result = await response.json();
+              if (result.valid) {
+                const s = result.sanitized;
+                validEntries.push(`${s.type},${s.category},${s.amount},${s.date}`);
+              } else {
+                invalidEntries.push({ row, message: result.message });
+              }
+            } catch (err) {
+              console.error('Validation service error:', err);
+              invalidEntries.push({ row, message: 'Microservice D failed to respond' });
+            }
+          }
 
-      logLines.push(`[${timestamp}] Uploaded CSV with ${validEntries.length} valid and ${invalidEntries.length} invalid entries.`);
+          fs.unlinkSync(filePath); // Delete uploaded temp file
 
-      invalidEntries.forEach(({ row, message }, idx) => {
-        logLines.push(`  Invalid row #${idx + 1}: ${JSON.stringify(row)} => ${message}`);
-      });
+          const timestamp = new Date().toISOString();
+          const logLines = [`[${timestamp}] Uploaded CSV with ${validEntries.length} valid and ${invalidEntries.length} invalid entries.`];
 
-      fs.appendFileSync(LOG_FILE, logLines.join('\n') + '\n\n');
+          invalidEntries.forEach(({ row, message }, idx) => {
+            logLines.push(`  Invalid row #${idx + 1}: ${JSON.stringify(row)} => ${message}`);
+          });
 
-      if (validEntries.length === 0) {
-        return res.status(400).json({ message: 'Upload failed: all rows were invalid.' });
-      }
+          fs.appendFileSync(LOG_FILE, logLines.join('\n') + '\n\n');
 
-      const rowsToAdd = '\n' + validEntries.join('\n');
-      fs.appendFile(CSV_FILE, rowsToAdd, (err) => {
-        if (err) {
-          console.error('Error saving valid entries:', err);
-          return res.status(500).json({ message: 'Upload failed: server error writing data.' });
-        }
+          if (validEntries.length === 0) {
+            return res.status(400).json({ message: '❌ Upload failed: all rows were invalid.' });
+          }
 
-        return res.json({ message: `Uploaded ${validEntries.length} entries.` });
-      });
-    })
-    .on('error', (err) => {
-      console.error('CSV parsing error:', err);
-      fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] CSV parsing error: ${err.message}\n\n`);
-      res.status(500).json({ message: 'Upload failed: CSV parsing error.' });
-    });
+          const rowsToAdd = '\n' + validEntries.join('\n');
+          fs.appendFile(CSV_FILE, rowsToAdd, (err) => {
+            if (err) {
+              console.error('Error saving valid entries:', err);
+              return res.status(500).json({ message: '❌ Upload failed: server error writing data.' });
+            }
+            return res.json({ message: `✅ Uploaded ${validEntries.length} entries.` });
+          });
+        });
+    } catch (err) {
+      console.error('CSV processing error:', err);
+      fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] CSV processing error: ${err.message}\n\n`);
+      res.status(500).json({ message: '❌ Upload failed: server error.' });
+    }
+  };
+
+  processCSV();
 });
 
 
@@ -251,6 +268,37 @@ app.post('/create-account', async (req, res) => {
     console.error('Account creation error:', err);
     res.status(500).send('Internal server error');
   }
+});
+
+
+app.post('/trigger-upload', (req, res) => {
+  const { filePath } = req.body;
+  if (!filePath || !filePath.endsWith('.csv')) return res.status(400).send('Invalid trigger');
+
+  console.log(`📥 Trigger received for ${filePath}`);
+  const entries = [];
+
+  fs.createReadStream(filePath)
+    .pipe(csv())
+    .on('data', (row) => {
+      if (row.type && row.category && row.amount && row.date) {
+        entries.push(`${row.type},${row.category},${row.amount},${row.date}`);
+      }
+    })
+    .on('end', () => {
+      fs.appendFile(CSV_FILE, '\n' + entries.join('\n'), err => {
+        fs.unlinkSync(filePath);
+        if (err) {
+          console.error('❌ Error appending triggered data:', err);
+          return res.status(500).send('Failed');
+        }
+        res.send(`✅ ${entries.length} entries processed`);
+      });
+    })
+    .on('error', err => {
+      console.error('❌ CSV parse error:', err);
+      res.status(500).send('Parse error');
+    });
 });
 
 

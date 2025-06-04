@@ -1,3 +1,11 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const app = express();
+const PORT = 4002;
+
+app.use(bodyParser.json());
+
 function validateInput(entry) {
   const result = { valid: false, message: '', sanitized: {} };
 
@@ -36,4 +44,11 @@ function validateInput(entry) {
   return result;
 }
 
-module.exports = validateInput;
+app.post('/validate', (req, res) => {
+  const result = validateInput(req.body);
+  res.json(result);
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ Input Validator running on port ${PORT}`);
+});

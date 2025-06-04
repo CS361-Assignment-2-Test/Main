@@ -1,11 +1,14 @@
-const chokidar = require('chokidar');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
+const chokidar = require('chokidar');
+const csv = require('csv-parser');
+const fetch = require('node-fetch'); // npm install node-fetch
 
-// Directory to watch for CSV files
-const WATCH_DIR = path.join(__dirname, 'uploads');
+const WATCH_DIR = path.join(__dirname, '../uploads');
+const MAIN_SERVER_URL = 'http://localhost:3000/trigger-upload';
 
-// Initialize watcher
+if (!fs.existsSync(WATCH_DIR)) fs.mkdirSync(WATCH_DIR);
+
 const watcher = chokidar.watch(WATCH_DIR, {
   persistent: true,
   ignoreInitial: true
@@ -13,25 +16,19 @@ const watcher = chokidar.watch(WATCH_DIR, {
 
 watcher.on('add', filePath => {
   const fileName = path.basename(filePath);
+  if (!fileName.endsWith('.csv')) return;
 
-  // Ignore temporary or incomplete files
-  if (!fileName.endsWith('.csv')) {
-    //console.log(`Ignored non-CSV file: ${fileName}`);
-    return;
-  }
+  console.log(`📁 Detected new CSV file: ${fileName}`);
 
-  // Process valid CSV files
-  console.log(`Detected valid CSV file: ${fileName}`);
-
-  // Optional: Trigger further processing here
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err) return console.error(`Error reading ${fileName}:`, err);
-    console.log(`Contents of ${fileName}:\n`, data);
-  });
+  // Notify the main program
+  fetch(MAIN_SERVER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filePath })
+  })
+  .then(res => res.text())
+  .then(data => console.log(`Main program responded: ${data}`))
+  .catch(err => console.error('Error notifying main program:', err));
 });
 
-watcher.on('error', error => {
-  console.error('Watcher error:', error);
-});
-
-console.log(`Watching directory for CSV files: ${WATCH_DIR}`);
+console.log(`📂 File Trigger Detector running. Watching: ${WATCH_DIR}`);
