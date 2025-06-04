@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const csv = require('csv-parser');
 const path = require('path');
-const multer = require('multer'); // ✅ Add multer
+const multer = require('multer'); 
 const upload = multer({ dest: 'uploads/' }); // Configure temporary upload destination
 const csvHeaders = 'type,category,amount,date\n';
 const validateEntry = require('./validator/validator'); // adjust path if needed
@@ -139,23 +139,23 @@ app.post('/upload-csv', upload.single('csvFile'), (req, res) => {
       fs.appendFileSync(LOG_FILE, logLines.join('\n') + '\n\n');
 
       if (validEntries.length === 0) {
-        return res.status(400).json({ message: '❌ Upload failed: all rows were invalid.' });
+        return res.status(400).json({ message: 'Upload failed: all rows were invalid.' });
       }
 
       const rowsToAdd = '\n' + validEntries.join('\n');
       fs.appendFile(CSV_FILE, rowsToAdd, (err) => {
         if (err) {
           console.error('Error saving valid entries:', err);
-          return res.status(500).json({ message: '❌ Upload failed: server error writing data.' });
+          return res.status(500).json({ message: 'Upload failed: server error writing data.' });
         }
 
-        return res.json({ message: `✅ Uploaded ${validEntries.length} entries.` });
+        return res.json({ message: `Uploaded ${validEntries.length} entries.` });
       });
     })
     .on('error', (err) => {
       console.error('CSV parsing error:', err);
       fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] CSV parsing error: ${err.message}\n\n`);
-      res.status(500).json({ message: '❌ Upload failed: CSV parsing error.' });
+      res.status(500).json({ message: 'Upload failed: CSV parsing error.' });
     });
 });
 
