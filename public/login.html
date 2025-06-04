@@ -27,12 +27,26 @@
       <button type="submit">Login</button>
     </form>
     <p id="loginMessage"></p>
+
+    <hr>
+
+    <h2>Create Account</h2>
+    <form id="signupForm">
+      <label for="newUsername">New Username:</label>
+      <input type="text" id="newUsername" required />
+
+      <label for="newPassword">New Password:</label>
+      <input type="password" id="newPassword" required />
+
+      <button type="submit">Create Account</button>
+    </form>
+    <p id="signupMessage"></p>
   </main>
 
   <script>
+    // Login form
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
 
@@ -45,6 +59,23 @@
       const result = await res.text();
       const msgEl = document.getElementById('loginMessage');
       msgEl.textContent = result === '1' ? 'Login successful!' : 'Login failed.';
+    });
+
+    // Signup form
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('newUsername').value;
+      const password = document.getElementById('newPassword').value;
+
+      const res = await fetch('/create-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      const result = await res.text();
+      const msgEl = document.getElementById('signupMessage');
+      msgEl.textContent = result;
     });
   </script>
 </body>

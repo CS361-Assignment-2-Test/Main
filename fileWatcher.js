@@ -16,7 +16,7 @@ watcher.on('add', filePath => {
 
   // Ignore temporary or incomplete files
   if (!fileName.endsWith('.csv')) {
-    console.log(`Ignored non-CSV file: ${fileName}`);
+    //console.log(`Ignored non-CSV file: ${fileName}`);
     return;
   }
 

@@ -3,9 +3,13 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const csv = require('csv-parser');
 const path = require('path');
-const multer = require('multer'); // Add multer
+const multer = require('multer'); 
 const upload = multer({ dest: 'uploads/' }); // Configure temporary upload destination
 const csvHeaders = 'type,category,amount,date\n';
+const validateEntry = require('./validator/validator'); // adjust path if needed
+const LOG_FILE = path.join(__dirname, 'upload.log');
+const USERS_FILE = path.join(__dirname, 'secrets/users.json');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -107,27 +111,54 @@ app.post('/upload-csv', upload.single('csvFile'), (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded.');
 
   const filePath = req.file.path;
-  const entries = [];
+  const validEntries = [];
+  const invalidEntries = [];
 
   fs.createReadStream(filePath)
     .pipe(csv())
     .on('data', (row) => {
-      if (row.type && row.category && row.amount && row.date) {
-        entries.push(`${row.type},${row.category},${row.amount},${row.date}`);
+      const { valid, sanitized, message } = validateEntry(row);
+      if (valid) {
+        validEntries.push(`${sanitized.type},${sanitized.category},${sanitized.amount},${sanitized.date}`);
+      } else {
+        invalidEntries.push({ row, message });
       }
     })
     .on('end', () => {
-      fs.appendFile(CSV_FILE, '\n' + entries.join('\n'), (err) => {
-        fs.unlinkSync(filePath); // Clean up uploaded file
-        if (err) return res.status(500).send('Error saving entries.');
-        res.send(`Uploaded ${entries.length} entries from CSV.`);
+      fs.unlinkSync(filePath); // clean up temp file
+
+      const logLines = [];
+      const timestamp = new Date().toISOString();
+
+      logLines.push(`[${timestamp}] Uploaded CSV with ${validEntries.length} valid and ${invalidEntries.length} invalid entries.`);
+
+      invalidEntries.forEach(({ row, message }, idx) => {
+        logLines.push(`  Invalid row #${idx + 1}: ${JSON.stringify(row)} => ${message}`);
+      });
+
+      fs.appendFileSync(LOG_FILE, logLines.join('\n') + '\n\n');
+
+      if (validEntries.length === 0) {
+        return res.status(400).json({ message: 'Upload failed: all rows were invalid.' });
+      }
+
+      const rowsToAdd = '\n' + validEntries.join('\n');
+      fs.appendFile(CSV_FILE, rowsToAdd, (err) => {
+        if (err) {
+          console.error('Error saving valid entries:', err);
+          return res.status(500).json({ message: 'Upload failed: server error writing data.' });
+        }
+
+        return res.json({ message: `Uploaded ${validEntries.length} entries.` });
       });
     })
     .on('error', (err) => {
       console.error('CSV parsing error:', err);
-      res.status(500).send('Failed to parse CSV');
+      fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] CSV parsing error: ${err.message}\n\n`);
+      res.status(500).json({ message: 'Upload failed: CSV parsing error.' });
     });
 });
+
 
 const chokidar = require('chokidar');
 
@@ -148,7 +179,7 @@ watcher.on('add', filePath => {
 
   // Skip temporary or incomplete files
   if (!fileName.endsWith('.csv')) {
-    console.log(`Ignored non-CSV file: ${fileName}`);
+    //console.log(`Ignored non-CSV file: ${fileName}`);
     return;
   }
 
@@ -189,6 +220,30 @@ app.post('/validate', async (req, res) => {
 
   const result = await validateCredentials(username, password);
   res.send(result.toString()); // '1' or '0'
+});
+
+app.post('/create-account', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).send('Missing fields');
+
+  try {
+    const data = fs.existsSync(USERS_FILE) ? fs.readFileSync(USERS_FILE) : '{"users":[]}';
+    const parsed = JSON.parse(data);
+    const users = parsed.users;
+
+    if (users.find(u => u.username === username)) {
+      return res.status(400).send('Username already exists');
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    users.push({ username, passwordHash });
+
+    fs.writeFileSync(USERS_FILE, JSON.stringify({ users }, null, 2));
+    res.send('Account created successfully');
+  } catch (err) {
+    console.error('Account creation error:', err);
+    res.status(500).send('Internal server error');
+  }
 });
 
 
