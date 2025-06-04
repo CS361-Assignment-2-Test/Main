@@ -31,4 +31,4 @@ watcher.on('add', filePath => {
   .catch(err => console.error('Error notifying main program:', err));
 });
 
-console.log(`📂 File Trigger Detector running. Watching: ${WATCH_DIR}`);
+console.log(` File Trigger Detector running. Watching: ${WATCH_DIR}`);

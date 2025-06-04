@@ -50,5 +50,5 @@ app.post('/validate', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Input Validator running on port ${PORT}`);
+  console.log(`Input Validator running on port ${PORT}`);
 });
