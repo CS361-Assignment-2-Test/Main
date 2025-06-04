@@ -10,6 +10,7 @@ const validateEntry = require('./validator/validator'); // adjust path if needed
 const LOG_FILE = path.join(__dirname, 'upload.log');
 const USERS_FILE = path.join(__dirname, 'secrets/users.json');
 const bcrypt = require('bcrypt');
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -211,16 +212,22 @@ watcher.on('add', filePath => {
 
 console.log(`File watcher is running. Watching folder: ${WATCH_DIR}`);
 
-const validateCredentials = require('./credentials/validator');
-
 app.post('/validate', async (req, res) => {
-  const { username, password } = req.body;
+  try {
+    const response = await fetch('http://localhost:4001/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
+    });
 
-  if (!username || !password) return res.status(400).send('Missing credentials');
-
-  const result = await validateCredentials(username, password);
-  res.send(result.toString()); // '1' or '0'
+    const result = await response.text();
+    res.send(result);
+  } catch (err) {
+    console.error('Error calling credential validator microservice:', err);
+    res.status(500).send('0');
+  }
 });
+
 
 app.post('/create-account', async (req, res) => {
   const { username, password } = req.body;

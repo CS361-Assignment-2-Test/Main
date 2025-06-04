@@ -1,3 +1,5 @@
+// validator.js - Microservice C
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcrypt');
@@ -5,15 +7,21 @@ const bcrypt = require('bcrypt');
 const USERS_FILE = path.join(__dirname, '../secrets/users.json');
 const LOG_FILE = path.join(__dirname, '../loginresponse.txt');
 
+const app = express();
+const PORT = 4001;
+
+app.use(express.json());
+
 // Uniform delay to prevent timing attacks (e.g., 300ms)
 const uniformDelay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Format the current date and time as a string
 function getTimestamp() {
-  return new Date().toISOString(); // e.g., "2025-06-02T20:21:30.123Z"
+  return new Date().toISOString();
 }
 
-async function validateCredentials(username, password) {
+app.post('/validate', async (req, res) => {
+  const { username, password } = req.body;
   const start = Date.now();
   let success = false;
 
@@ -28,6 +36,7 @@ async function validateCredentials(username, password) {
       success = match;
     }
 
+    // Fake bcrypt compare to equalize timing for non-existent usernames
     if (!user) await bcrypt.compare(password, "$2b$10$invalidfakestring..............");
 
   } catch (err) {
@@ -47,7 +56,9 @@ async function validateCredentials(username, password) {
     if (err) console.error('Error writing to loginresponse.txt:', err);
   });
 
-  return result;
-}
+  res.send(result.toString());
+});
 
-module.exports = validateCredentials;
+app.listen(PORT, () => {
+  console.log(`Credential Validator running on http://localhost:${PORT}`);
+});
