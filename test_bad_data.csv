@@ -1,0 +1,11 @@
+type,category,amount,date
+income,Salary,3000,2025-06-01
+expense,Food,25.50,2025-06-01
+expense,Transport,abc,2025-06-01
+,Utilities,100,2025-06-01
+income,Freelance,450,2025-06-02
+expense,hack,50,2025-06-02
+expense,Entertainment,75,2025-06-03
+expense,Groceries,90,
+income,Gift,200,2025-06-01
+income,Bonus,1000,2025-13-40
