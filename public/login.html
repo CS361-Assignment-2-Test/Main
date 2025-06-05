@@ -38,9 +38,6 @@
       <label for="newPassword">New Password:</label>
       <input type="password" id="newPassword" required />
 
-      <label for="confirmPassword">Confirm Password:</label>
-      <input type="password" id="confirmPassword" required />
-
       <button type="submit">Create Account</button>
     </form>
     <p id="signupMessage"></p>
@@ -70,28 +67,8 @@
 
       const username = document.getElementById('newUsername').value;
       const password = document.getElementById('newPassword').value;
-      const confirmPassword = document.getElementById('confirmPassword').value;
-      const msgEl = document.getElementById('signupMessage');
 
-      // Call Microservice A through confirmation endpoint
-      const confirmRes = await fetch('/confirm-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: password,
-          user_input: confirmPassword
-        })
-      });
 
-      const confirmResult = await confirmRes.text();
-      const [match, total] = confirmResult.split('/').map(Number);
-
-      if (match < total) {
-        msgEl.textContent = 'Passwords do not match.';
-        return;
-      }
-
-      // Continue with account creation
       const res = await fetch('/create-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,6 +76,7 @@
       });
 
       const result = await res.text();
+      const msgEl = document.getElementById('signupMessage');
       msgEl.textContent = result;
     });
   </script>
