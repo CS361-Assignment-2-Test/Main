@@ -108,73 +108,85 @@ app.get('/get-all-entries', (req, res) => {
 });
 
 // Route: Upload and process CSV file
-app.post('/upload-csv', upload.single('csvFile'), (req, res) => {
+app.post('/upload-csv', upload.single('csvFile'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded.');
+  if (!req.body.confirmation) return res.status(400).send('Missing confirmation text.');
 
   const filePath = req.file.path;
   const validEntries = [];
   const invalidEntries = [];
 
-  const processCSV = async () => {
-    try {
-      const rows = [];
-      fs.createReadStream(filePath)
-        .pipe(csv())
-        .on('data', (row) => rows.push(row))
-        .on('end', async () => {
-          for (const row of rows) {
-            try {
-              const response = await fetch('http://localhost:4002/validate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(row)
-              });
+  try {
+    // Write to prompt/user_input for Microservice A
+    const baseDir = path.join(__dirname, 'CompareText(MA)');
+    fs.writeFileSync(path.join(baseDir, 'prompt.txt'), 'Confirm CSV.');
+    fs.writeFileSync(path.join(baseDir, 'user_input.txt'), req.body.confirmation.trim());
 
-              const result = await response.json();
-              if (result.valid) {
-                const s = result.sanitized;
-                validEntries.push(`${s.type},${s.category},${s.amount},${s.date}`);
-              } else {
-                invalidEntries.push({ row, message: result.message });
-              }
-            } catch (err) {
-              console.error('Validation service error:', err);
-              invalidEntries.push({ row, message: 'Microservice D failed to respond' });
-            }
-          }
+    // Call Microservice A to compare confirmation
+    const confirmRes = await fetch('http://localhost:4003/compare-confirmation', {
+      method: 'POST',
+    });
+    const resultText = await confirmRes.text();
+    const [match, total] = resultText.split('/').map(Number);
 
-          fs.unlinkSync(filePath); // Delete uploaded temp file
-
-          const timestamp = new Date().toISOString();
-          const logLines = [`[${timestamp}] Uploaded CSV with ${validEntries.length} valid and ${invalidEntries.length} invalid entries.`];
-
-          invalidEntries.forEach(({ row, message }, idx) => {
-            logLines.push(`  Invalid row #${idx + 1}: ${JSON.stringify(row)} => ${message}`);
-          });
-
-          fs.appendFileSync(LOG_FILE, logLines.join('\n') + '\n\n');
-
-          if (validEntries.length === 0) {
-            return res.status(400).json({ message: 'Upload failed: all rows were invalid.' });
-          }
-
-          const rowsToAdd = '\n' + validEntries.join('\n');
-          fs.appendFile(CSV_FILE, rowsToAdd, (err) => {
-            if (err) {
-              console.error('Error saving valid entries:', err);
-              return res.status(500).json({ message: 'Upload failed: server error writing data.' });
-            }
-            return res.json({ message: ` Uploaded ${validEntries.length} entries.` });
-          });
-        });
-    } catch (err) {
-      console.error('CSV processing error:', err);
-      fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] CSV processing error: ${err.message}\n\n`);
-      res.status(500).json({ message: ' Upload failed: server error.' });
+    if (match < total) {
+      fs.unlinkSync(filePath);
+      return res.status(400).json({ message: 'Confirmation failed. Please type "Confirm CSV."' });
     }
-  };
 
-  processCSV();
+    // If confirmation passed, process the CSV
+    const rows = [];
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on('data', (row) => rows.push(row))
+      .on('end', async () => {
+        for (const row of rows) {
+          try {
+            const response = await fetch('http://localhost:4002/validate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(row),
+            });
+
+            const result = await response.json();
+            if (result.valid) {
+              const s = result.sanitized;
+              validEntries.push(`${s.type},${s.category},${s.amount},${s.date}`);
+            } else {
+              invalidEntries.push({ row, message: result.message });
+            }
+          } catch (err) {
+            console.error('Validation microservice failed:', err);
+            invalidEntries.push({ row, message: 'Validator unavailable' });
+          }
+        }
+
+        fs.unlinkSync(filePath); // delete uploaded file
+
+        const timestamp = new Date().toISOString();
+        const logLines = [`[${timestamp}] Uploaded CSV with ${validEntries.length} valid and ${invalidEntries.length} invalid entries.`];
+        invalidEntries.forEach(({ row, message }, idx) => {
+          logLines.push(`  Invalid row #${idx + 1}: ${JSON.stringify(row)} => ${message}`);
+        });
+        fs.appendFileSync(LOG_FILE, logLines.join('\n') + '\n\n');
+
+        if (validEntries.length === 0) {
+          return res.status(400).json({ message: 'Upload failed: all rows were invalid.' });
+        }
+
+        const rowsToAdd = '\n' + validEntries.join('\n');
+        fs.appendFile(CSV_FILE, rowsToAdd, (err) => {
+          if (err) {
+            console.error('Write error:', err);
+            return res.status(500).json({ message: 'Server error writing data.' });
+          }
+          return res.json({ message: `Uploaded ${validEntries.length} entries.` });
+        });
+      });
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).json({ message: 'Server error during CSV upload.' });
+  }
 });
 
 

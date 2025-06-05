@@ -1,8 +1,0 @@
-[2025-06-04T20:37:40.882Z] Uploaded CSV with 7 valid and 0 invalid entries.[2025-06-04T22:37:32.344Z] Uploaded CSV with 7 valid and 0 invalid entries.
-
-[2025-06-04T22:37:36.976Z] Uploaded CSV with 6 valid and 4 invalid entries.
-  Invalid row #1: {"type":"expense","category":"Transport","amount":"abc","date":"2025-06-01"} => Missing or invalid 'amount' field
-  Invalid row #2: {"type":"","category":"Utilities","amount":"100","date":"2025-06-01"} => Missing or invalid 'type' field
-  Invalid row #3: {"type":"expense","category":"Groceries","amount":"90","date":""} => Missing or invalid 'date' field
-  Invalid row #4: {"type":"income","category":"Bonus","amount":"1000","date":"2025-13-40"} => Missing or invalid 'date' field
-

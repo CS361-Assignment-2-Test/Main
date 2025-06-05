@@ -20,15 +20,14 @@
 <body>
 
   <header class="app-header">
-  <div class="container header-flex">
-    <div class="logo">Finance Tracker</div>
-    <nav class="nav-links">
-      <a href="index.html">Home</a>
-      <a href="login.html" class="login-link">Login</a>
-    </nav>
-  </div>
-</header>
-
+    <div class="container header-flex">
+      <div class="logo">Finance Tracker</div>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="login.html" class="login-link">Login</a>
+      </nav>
+    </div>
+  </header>
 
   <main class="center-content">
     <h1>Personal Finance Tracker</h1>
@@ -42,32 +41,49 @@
 
       <a href="summary.html">View Spending Summary</a>
       <p class="action-description">Visualize your spending and net savings over time.</p>
+    </div>
 
-      <h2 style="margin-top: 40px;">Upload Entries via CSV</h2>
-      <form id="csvUploadForm" enctype="multipart/form-data" style="margin-top: 10px;">
-        <input type="file" id="csvFile" name="csvFile" accept=".csv" required />
-        <button type="submit">Upload CSV</button>
-        <p id="uploadMessage" style="text-align: center; font-weight: bold;"></p>
-      </form>
+    <h2 style="margin-top: 40px;">Upload Entries via CSV</h2>
+    <form id="csvUploadForm" enctype="multipart/form-data" style="margin-top: 10px;">
+      <label for="csvFile">Choose CSV file:</label><br>
+      <input type="file" id="csvFile" name="csvFile" accept=".csv" required /><br><br>
 
-      <script>
-        document.getElementById('csvUploadForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData();
-        formData.append('csvFile', document.getElementById('csvFile').files[0]);
+      <label for="confirmation">Type "Confirm CSV." to continue:</label><br>
+      <input type="text" id="confirmation" name="confirmation" required /><br><br>
 
+      <button type="submit">Upload CSV</button>
+      <p id="uploadMessage" style="text-align: center; font-weight: bold;"></p>
+    </form>
+  </main>
+
+  <script>
+    document.getElementById('csvUploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('csvFile');
+      const confirmationInput = document.getElementById('confirmation');
+      const msgEl = document.getElementById('uploadMessage');
+
+      const formData = new FormData();
+      formData.append('csvFile', fileInput.files[0]);
+      formData.append('confirmation', confirmationInput.value);
+
+      try {
         const res = await fetch('/upload-csv', {
           method: 'POST',
           body: formData
         });
 
-        const msg = await res.text();
-        document.getElementById('uploadMessage').textContent = msg;
-        e.target.reset();
-      });
-      </script>
-    </div>
-  </main>
+        const data = await res.json();
+        msgEl.textContent = data.message || 'Upload completed.';
+      } catch (err) {
+        msgEl.textContent = 'Upload failed. Please try again.';
+        console.error(err);
+      }
+
+      e.target.reset();
+    });
+  </script>
 
 </body>
 </html>
