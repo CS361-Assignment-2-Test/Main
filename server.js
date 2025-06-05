@@ -161,7 +161,10 @@ app.post('/upload-csv', upload.single('csvFile'), async (req, res) => {
           }
         }
 
-        fs.unlinkSync(filePath); // delete uploaded file
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+
 
         const timestamp = new Date().toISOString();
         const logLines = [`[${timestamp}] Uploaded CSV with ${validEntries.length} valid and ${invalidEntries.length} invalid entries.`];
@@ -287,9 +290,14 @@ app.post('/trigger-upload', (req, res) => {
   const { filePath } = req.body;
   if (!filePath || !filePath.endsWith('.csv')) return res.status(400).send('Invalid trigger');
 
-  console.log(`📥 Trigger received for ${filePath}`);
-  const entries = [];
+  console.log(` Trigger received for ${filePath}`);
 
+  if (!fs.existsSync(filePath)) {
+    console.warn(`File no longer exists: ${filePath}`);
+    return res.status(400).send('File not found');
+  }
+
+  const entries = [];
   fs.createReadStream(filePath)
     .pipe(csv())
     .on('data', (row) => {
@@ -299,7 +307,7 @@ app.post('/trigger-upload', (req, res) => {
     })
     .on('end', () => {
       fs.appendFile(CSV_FILE, '\n' + entries.join('\n'), err => {
-        fs.unlinkSync(filePath);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         if (err) {
           console.error(' Error appending triggered data:', err);
           return res.status(500).send('Failed');

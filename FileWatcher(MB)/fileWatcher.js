@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const csv = require('csv-parser');
-const fetch = require('node-fetch'); // npm install node-fetch
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
 
 const WATCH_DIR = path.join(__dirname, '../uploads');
 const MAIN_SERVER_URL = 'http://localhost:3000/trigger-upload';
@@ -18,7 +19,7 @@ watcher.on('add', filePath => {
   const fileName = path.basename(filePath);
   if (!fileName.endsWith('.csv')) return;
 
-  console.log(`📁 Detected new CSV file: ${fileName}`);
+  console.log(`Detected new CSV file: ${fileName}`);
 
   // Notify the main program
   fetch(MAIN_SERVER_URL, {

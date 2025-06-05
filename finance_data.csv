@@ -1,1 +1,9 @@
 type,category,amount,date
+expense,testing231,60,2025-06-30
+income,Freelance,600,2025-06-01
+income,Salary,2500,2025-06-05
+expense,Groceries,130.45,2025-06-06
+expense,Utilities,115,2025-06-07
+expense,Entertainment,75.25,2025-06-08
+expense,Rent,1200,2025-06-01
+income,Gift,150,2025-06-10

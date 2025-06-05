@@ -1,0 +1,29 @@
+[2025-06-05T04:03:05.963Z] Uploaded CSV with 0 valid and 7 invalid entries.
+  Invalid row #1: {"type":"income","category":"Freelance","amount":"600","date":"2025-06-01"} => Validator unavailable
+  Invalid row #2: {"type":"income","category":"Salary","amount":"2500","date":"2025-06-05"} => Validator unavailable
+  Invalid row #3: {"type":"expense","category":"Groceries","amount":"130.45","date":"2025-06-06"} => Validator unavailable
+  Invalid row #4: {"type":"expense","category":"Utilities","amount":"115.00","date":"2025-06-07"} => Validator unavailable
+  Invalid row #5: {"type":"expense","category":"Entertainment","amount":"75.25","date":"2025-06-08"} => Validator unavailable
+  Invalid row #6: {"type":"expense","category":"Rent","amount":"1200","date":"2025-06-01"} => Validator unavailable
+  Invalid row #7: {"type":"income","category":"Gift","amount":"150","date":"2025-06-10"} => Validator unavailable
+
+[2025-06-05T04:08:38.736Z] Uploaded CSV with 7 valid and 0 invalid entries.
+
+[2025-06-05T04:20:40.816Z] Uploaded CSV with 7 valid and 0 invalid entries.
+
+[2025-06-05T04:21:12.669Z] Uploaded CSV with 6 valid and 4 invalid entries.
+  Invalid row #1: {"type":"expense","category":"Transport","amount":"abc","date":"2025-06-01"} => Missing or invalid 'amount' field
+  Invalid row #2: {"type":"","category":"Utilities","amount":"100","date":"2025-06-01"} => Missing or invalid 'type' field
+  Invalid row #3: {"type":"expense","category":"Groceries","amount":"90","date":""} => Missing or invalid 'date' field
+  Invalid row #4: {"type":"income","category":"Bonus","amount":"1000","date":"2025-13-40"} => Missing or invalid 'date' field
+
+[2025-06-05T04:27:36.029Z] Uploaded CSV with 7 valid and 0 invalid entries.
+
+[2025-06-05T05:02:42.066Z] Uploaded CSV with 6 valid and 4 invalid entries.
+  Invalid row #1: {"type":"expense","category":"Transport","amount":"abc","date":"2025-06-01"} => Missing or invalid 'amount' field
+  Invalid row #2: {"type":"","category":"Utilities","amount":"100","date":"2025-06-01"} => Missing or invalid 'type' field
+  Invalid row #3: {"type":"expense","category":"Groceries","amount":"90","date":""} => Missing or invalid 'date' field
+  Invalid row #4: {"type":"income","category":"Bonus","amount":"1000","date":"2025-13-40"} => Missing or invalid 'date' field
+
+[2025-06-05T06:05:02.820Z] Uploaded CSV with 7 valid and 0 invalid entries.
+
